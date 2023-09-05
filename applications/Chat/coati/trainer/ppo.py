@@ -1,4 +1,4 @@
-from typing import Dict, List
+from typing import Dict, List, Union
 
 import torch.nn as nn
 from coati.experience_buffer import NaiveExperienceBuffer
@@ -63,7 +63,7 @@ class PPOTrainer(OnPolicyTrainer):
     def __init__(self,
                  strategy: Strategy,
                  actor: Actor,
-                 critic: Critic,
+                 critic: Union[Critic,None],
                  reward_model: nn.Module,
                  initial_model: Actor,
                  actor_optim: Optimizer,
@@ -101,12 +101,12 @@ class PPOTrainer(OnPolicyTrainer):
         self.critic = critic
 
         self.actor_loss_fn = PolicyLoss(eps_clip)
-        self.critic_loss_fn = ValueLoss(value_clip)
+        #self.critic_loss_fn = ValueLoss(value_clip)
         self.vf_coef = vf_coef
         self.ptx_loss_fn = GPTLMLoss()
         self.ptx_coef = ptx_coef
         self.actor_optim = actor_optim
-        self.critic_optim = critic_optim
+        #self.critic_optim = critic_optim
 
         self.device = get_current_device()
 
@@ -125,7 +125,7 @@ class PPOTrainer(OnPolicyTrainer):
 
     def _training_step(self, experience: Experience) -> Dict[str, float]:
         self.actor.train()
-        self.critic.train()
+        #self.critic.train()
         # policy loss
         num_actions = experience.action_mask.size(1)
         actor_output = self.actor(experience.sequences, attention_mask=experience.attention_mask)
@@ -149,17 +149,17 @@ class PPOTrainer(OnPolicyTrainer):
         self.actor_optim.zero_grad()
 
         # value loss
-        values = self.critic(experience.sequences,
-                             action_mask=experience.action_mask,
-                             attention_mask=experience.attention_mask)
-        critic_loss = self.critic_loss_fn(values,
-                                          experience.values,
-                                          experience.reward,
-                                          action_mask=experience.action_mask)
-        critic_loss = critic_loss * self.vf_coef
-        self.strategy.backward(critic_loss, self.critic, self.critic_optim)
-        self.strategy.optimizer_step(self.critic_optim)
-        self.critic_optim.zero_grad()
+        # values = self.critic(experience.sequences,
+        #                      action_mask=experience.action_mask,
+        #                      attention_mask=experience.attention_mask)
+        # critic_loss = self.critic_loss_fn(values,
+        #                                   experience.values,
+        #                                   experience.reward,
+        #                                   action_mask=experience.action_mask)
+        # critic_loss = critic_loss * self.vf_coef
+        # self.strategy.backward(critic_loss, self.critic, self.critic_optim)
+        # self.strategy.optimizer_step(self.critic_optim)
+        # self.critic_optim.zero_grad()
 
         return {'reward': experience.reward.mean().item()}
 
@@ -174,6 +174,7 @@ class PPOTrainer(OnPolicyTrainer):
             self._on_learn_batch_start()
             experience.to_device(self.device)
             metrics = self._training_step(experience)
+            print('Reward:'+str(metrics['reward']))
             self._on_learn_batch_end(metrics, experience)
         else:
             if isinstance(self.dataloader.sampler, DistributedSampler):

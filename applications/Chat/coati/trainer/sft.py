@@ -52,13 +52,9 @@ class SFTTrainer(SLTrainer):
         for batch_id, batch in enumerate(self.train_dataloader):
 
             batch = to_device(batch, torch.cuda.current_device())
-            if "attention_mask" in batch:
-                outputs = self.model(batch["input_ids"],
-                                    attention_mask=batch["attention_mask"],
-                                    labels=batch["labels"])
-            else:
-                outputs = self.model(batch["input_ids"],
-                                    labels=batch["labels"])
+            outputs = self.model(batch["input_ids"],
+                                 attention_mask=batch["attention_mask"],
+                                 labels=batch["labels"])
 
             loss = outputs.loss
             loss = loss / self.accumulation_steps
@@ -79,6 +75,7 @@ class SFTTrainer(SLTrainer):
                         "epoch": epoch,
                         "batch_id": batch_id
                     })
+                print("loss:", self.total_loss / self.accumulation_steps)
                 self.total_loss = 0
                 self.step_bar.update()
 
