@@ -14,7 +14,7 @@ class NaiveExperienceMaker(ExperienceMaker):
     @torch.no_grad()
     def make_experience(self, input_ids: torch.Tensor, **generate_kwargs) -> Experience:
         self.actor.eval()
-        self.critic.eval()
+        #self.critic.eval()
         self.initial_model.eval()
         self.reward_model.eval()
 
@@ -45,10 +45,10 @@ class NaiveExperienceMaker(ExperienceMaker):
         action_log_probs = calc_action_log_probs(actor_output, sequences, num_actions)
         base_model_output = self.initial_model(sequences, attention_mask)
         base_action_log_probs = calc_action_log_probs(base_model_output, sequences, num_actions)
-        value = self.critic(sequences, action_mask, attention_mask)
-        r = self.reward_model(sequences, attention_mask)
+        #value = self.critic(sequences, action_mask, attention_mask)
+        r = self.reward_model(sequences, attention_mask, action_mask, num_actions)
         reward = compute_reward(r, self.kl_coef, action_log_probs, base_action_log_probs, action_mask=action_mask)
-
+        value = torch.zeros([action_mask.size(0),1]).to(reward.device)
         advantage = reward - value
         # TODO(ver217): maybe normalize adv
         if advantage.ndim == 1:

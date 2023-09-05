@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, Union
 
 import torch
 import torch.nn as nn
@@ -61,7 +61,7 @@ class ExperienceMaker(ABC):
 
     def __init__(self,
                  actor: Actor,
-                 critic: nn.Module,
+                 critic: Union[nn.Module,None],
                  reward_model: nn.Module,
                  initial_model: Actor,
                  kl_coef: float = 0.1) -> None:
