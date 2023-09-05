@@ -34,7 +34,13 @@ def compute_reward(r: Union[torch.Tensor, float],
     if kl_coef <= 0.0:
         return r
     kl = _compute_approx_kl(log_probs, log_probs_base, action_mask=action_mask)
-    reward = r - kl_coef * kl
+    if isinstance(r,torch.Tensor):
+        if action_mask is not None:
+            reward = r - kl_coef * (kl.unsqueeze(-1) * action_mask)
+        else:
+            reward = r - kl_coef * kl.unsqueeze(-1)
+    else:
+        reward = r - kl_coef * kl
     return reward
 
 
